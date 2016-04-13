@@ -8,7 +8,7 @@
 Non-linear operators
 """
 
-from cntk.ops.cntk1 import Sigmoid
+from cntk.ops.cntk1 import Sigmoid, Softmax, Exp
 
 
 def sigmoid(x, name=None):
@@ -24,3 +24,31 @@ def sigmoid(x, name=None):
         :class:`cntk.graph.ComputationNode`
     """
     return Sigmoid(x, var_name=name)
+
+def softmax(x, name=None):
+    """
+    computes the element-wise sigmoid of `x`: 
+
+    :math:`softmax(X) = {\exp(X_ \over {1+\exp(-x)}}`
+
+    Args:
+        x: any :class:`cntk.graph.ComputationNode` that outputs a tensor
+
+    Returns:
+        :class:`cntk.graph.ComputationNode`
+    """
+    return Softmax(x, var_name=name)
+
+def exp(x, name=None):
+    """
+    computes the element-wise exponential of `x`: 
+
+    :math:`exp(x) = {e^x}`
+
+    Args:
+        x: any :class:`cntk.graph.ComputationNode` that outputs a tensor
+
+    Returns:
+        :class:`cntk.graph.ComputationNode`
+    """
+    return Exp(x, var_name=name)

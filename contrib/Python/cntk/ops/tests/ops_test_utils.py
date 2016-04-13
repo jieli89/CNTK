@@ -16,7 +16,7 @@ from ...reader import *
 
 # NumPy's allclose() has 1e08 as the absolute tolerance, which is too strict for
 # functions like sigmoid.
-TOLERANCE_ABSOLUTE = 1E06 
+TOLERANCE_ABSOLUTE = 1E-06 
 
 #Keeping things short
 C = constant
