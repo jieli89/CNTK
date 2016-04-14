@@ -10,7 +10,7 @@ Unit tests for non-linear operators.
 
 import numpy as np
 import pytest
-from .ops_test_utils import unittest_helper, C, AA, I, precision
+from .ops_test_utils import unittest_helper, C, AA, I, precision, PRECISION_TO_TYPE
 from ...graph import *
 from ...reader import *
 from ..non_linear import sigmoid, softmax, exp
@@ -106,11 +106,12 @@ def _test_op_softmax(batch, device_id, precision):
                         precision=precision, clean_up=False, backward_pass=True,
                         input_node=input_node)
 
+
 @pytest.mark.parametrize("tensor", TENSORS)
-def _test_op_exp(tensor, device_id, precision):
+def test_op_exp(tensor, device_id, precision):
 
     def numpy_exp(x):
-        return np.exp(AA(x))
+        return np.exp(AA(x, dtype=PRECISION_TO_TYPE[precision]))
 
     # Forward pass test
     # ==================

@@ -18,6 +18,8 @@ from ...reader import *
 # functions like sigmoid.
 TOLERANCE_ABSOLUTE = 1E-06 
 
+PRECISION_TO_TYPE = {'float': np.float32, 'double':np.float64}
+
 #Keeping things short
 C = constant
 I = input_reader
