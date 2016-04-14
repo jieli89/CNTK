@@ -8,8 +8,19 @@
 Non-linear operators
 """
 
-from cntk.ops.cntk1 import Exp, Sigmoid, Softmax, Tanh
+from cntk.ops.cntk1 import Exp, RectifiedLinear, Sigmoid, Softmax, Tanh
 
+def rectified_linear(x, name=None):
+    """
+    computes the element-wise rectified linear of `x`: `max(x, 0)`
+
+    Args:
+        x: any :class:`cntk.graph.ComputationNode` that outputs a tensor
+
+    Returns:
+        :class:`cntk.graph.ComputationNode`
+    """
+    return RectifiedLinear(x, var_name=name)
 
 def sigmoid(x, name=None):
     """
