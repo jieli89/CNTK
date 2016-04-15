@@ -118,7 +118,7 @@ Sequences BlockRandomizer::GetNextSequences(size_t sampleCount)
 
     // TODO: This will be changed, when we move transformers under the randomizer.
     // TODO: Randomizer won't should not deal with multithreading.
-#pragma omp parallel for ordered schedule(dynamic)
+// #pragma omp parallel for ordered schedule(dynamic)
     for (int i = 0; i < decimated.size(); ++i)
     {
         const auto& description = decimated[i];

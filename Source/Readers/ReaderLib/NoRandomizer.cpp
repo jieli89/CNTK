@@ -172,6 +172,7 @@ Sequences NoRandomizer::GetNextSequences(size_t sampleCount)
     }
 
     result.m_data.resize(m_streams.size(), std::vector<SequenceDataPtr>(subsetSize));
+    // TODO omp parallel, depending on option
     for (int i = 0; i < subsetSize; ++i)
     {
         std::vector<SequenceDataPtr> sequence;
