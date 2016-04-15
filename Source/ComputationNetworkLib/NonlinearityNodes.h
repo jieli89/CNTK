@@ -107,6 +107,7 @@ public:
 // RectifiedLinearNode (input)
 // LogNode (input)
 // ExpNode (input)
+// FloorNode (input)
 // CosineNode (input)
 // SinNode (input)
 // Abs(input)
@@ -146,6 +147,7 @@ DeclareUnaryElementWiseWithOpCodeNode(Exp,             Exp,             Elementw
 DeclareUnaryElementWiseWithOpCodeNode(Cosine,          Cosine,          ElementwiseProductWithCosDerivative,                       BinaryWithInputGradient);
 DeclareUnaryElementWiseWithOpCodeNode(Sin,             Sin,             ElementwiseProductWithSinDerivative,                       BinaryWithInputGradient);
 DeclareUnaryElementWiseWithOpCodeNode(Abs,             Abs,             ElementwiseProductWithAbsDerivative,                       BinaryWithInputGradient);
+DeclareUnaryElementWiseWithOpCodeNode(Floor,           Floor,           ZeroExpr,                                                  UnaryGradient);
 DeclareUnaryElementWiseWithOpCodeNode(Negate,          Negate,          Negate,                                                    UnaryGradient);
 DeclareUnaryElementWiseWithOpCodeNode(Sqrt,            Sqrt,            ElementwiseProductWithSqrtDerivative,                      BinaryWithOutputGradient);
 DeclareUnaryElementWiseWithOpCodeNode(Reciprocal,      Reciprocal,      ElementwiseProductWithReciprocalDerivative,                BinaryWithOutputGradient);
