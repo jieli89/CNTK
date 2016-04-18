@@ -2,7 +2,6 @@
 precision = "float"
 command = train:test
 deviceId = $DeviceId$
-initOnCPUOnly=true
 
 ndlMacros = "$ConfigDir$/Macros.ndl"
 
@@ -27,7 +26,7 @@ train = [
 
         // macros
         ConvReLULayer(inp, outMap, inMap, inWCount, kW, kH, hStride, vStride, wScale, bValue) = [  // ReLU non-linearity
-            convW = Parameter(outMap, inWCount, init="uniform", initValueScale=wScale, initOnCPUOnly=false)
+            convW = Parameter(outMap, inWCount, init="uniform", initValueScale=wScale, initOnCPUOnly=true)
             conv = Convolution(convW, inp, (kW : kH : inMap), mapDims=outMap, stride=(hStride : vStride : inMap), autoPadding=false, imageLayout="cudnn")
             convB = ParameterTensor((1 : 1 : outMap), init="fixedValue", value=bValue)
             convPlusB = Plus(conv, convB);
@@ -35,16 +34,16 @@ train = [
         ]
 
         DNNSigmoidLayer(inDim, outDim, x, parmScale) = [        // Sigmoid non-linearity
-            W = ParameterTensor((outDim : inDim), init="uniform", initValueScale=parmScale, initOnCPUOnly=false) 
-            b = ParameterTensor( outDim,          init="uniform", initValueScale=parmScale, initOnCPUOnly=false) 
+            W = ParameterTensor((outDim : inDim), init="uniform", initValueScale=parmScale, initOnCPUOnly=true) 
+            b = ParameterTensor( outDim,          init="uniform", initValueScale=parmScale, initOnCPUOnly=true) 
             t = Times(W, x)
             z = Plus(t, b)
             out = Sigmoid(z)
         ]
 
         DNNLayer(inDim, outDim, x, parmScale) = [               // no non-linearity, as input for SoftMax
-            W = Parameter(outDim, inDim, init="uniform", initValueScale=parmScale, initOnCPUOnly=false)
-            b = Parameter(outDim, 1,     init="uniform", initValueScale=parmScale, initOnCPUOnly=false)
+            W = Parameter(outDim, inDim, init="uniform", initValueScale=parmScale, initOnCPUOnly=true)
+            b = Parameter(outDim, 1,     init="uniform", initValueScale=parmScale, initOnCPUOnly=true)
             t = Times(W, x)
             out = Plus(t, b)
         ]
