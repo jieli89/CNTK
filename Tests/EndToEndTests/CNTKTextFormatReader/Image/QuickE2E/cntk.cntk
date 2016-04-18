@@ -2,6 +2,7 @@
 precision = "float"
 command = train:test
 deviceId = $DeviceId$
+initOnCPUOnly=true
 
 ndlMacros = "$ConfigDir$/Macros.ndl"
 

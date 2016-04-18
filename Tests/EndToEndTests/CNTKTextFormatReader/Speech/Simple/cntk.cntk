@@ -5,6 +5,8 @@ DeviceNumber=-1
 
 #stderr=Demo
 
+initOnCPUOnly=true
+
 precision=float
 
 modelPath=$RunDir$/models/simple.dnn
