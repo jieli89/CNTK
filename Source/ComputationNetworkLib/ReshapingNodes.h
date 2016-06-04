@@ -150,12 +150,12 @@ public:
 
     virtual void /*ComputationNode::*/ ForwardProp(const FrameRange& fr) override
     {
-        ValueFor(fr).SetValue(Input(0)->ValueFor(fr));
+        ValueFor(fr).AssignValuesOf(Input(0)->ValueFor(fr));
     }
 
     virtual void /*ComputationNode::*/ BackpropTo(const size_t inputIndex, const FrameRange& fr) override
     {
-        Input(inputIndex)->GradientFor(fr).SetValue(GradientFor(fr));
+        Input(inputIndex)->GradientFor(fr).AssignValuesOf(GradientFor(fr));
     }
 
     virtual bool OutputUsedInComputingInputNodesGradients() const override { return false; }
@@ -169,6 +169,59 @@ private:
 
 template class ReshapeNode<float>;
 template class ReshapeNode<double>;
+
+// -----------------------------------------------------------------------
+// ReduceElements (op, axis=, input)
+// Reduces (e.g. sums up) all elements in each sample (column) of the input.
+// The optional axis can be 0 (meaning all elements) or a specific axis.
+// Allowed operations:
+//  - "Sum"
+//  - "LogSum"    --not implemented yet
+//  - "Mean"      --not implemented yet
+//  - "Max"       --not implemented yet
+//  - "Min"       --not implemented yet
+//  - "All"       --not implemented yet
+//  - "Any"       --not implemented yet
+// TODO:
+//  - move to a different header, since it's not really Reshaping
+//  - consider to change to pass in a set of axes instead of only one
+// -----------------------------------------------------------------------
+
+template <class ElemType>
+class ReduceElementsNode : public ComputationNode<ElemType>, public NumInputs<1>
+{
+    typedef ComputationNode<ElemType> Base; UsingComputationNodeMembersBoilerplate;
+    static const std::wstring TypeName() { return L"ReduceElements"; }
+
+    void ValidateOp();
+public:
+    ReduceElementsNode(DEVICEID_TYPE deviceId, const wstring& name, const std::wstring& operation = std::wstring(), int axis = 0) :
+        Base(deviceId, name), m_operation(operation), m_axis(axis), m_op((ElementWiseOperator)-1/*invalid*/)
+    {
+        if (!m_operation.empty()) // verify validity already here out of courtesy (would otherwise be caught in Validate())
+            ValidateOp();
+    }
+
+    ReduceElementsNode(const ScriptableObjects::IConfigRecordPtr configp) :
+        ReduceElementsNode(configp->Get(L"deviceId"), L"<placeholder>", configp->Get(L"reductionOp"), configp->Get(L"axis"))
+    {
+        AttachInputsFromConfig(configp, this->GetExpectedNumInputs());
+    }
+
+    virtual void /*ComputationNodeBase::*/ CopyTo(ComputationNodeBasePtr nodeP, const std::wstring& newName, const CopyNodeFlags flags) const override;
+    virtual void /*ComputationNodeBase::*/ Load(File& fstream, size_t modelVersion) override;
+    virtual void /*ComputationNodeBase::*/ Save(File& fstream) const override;
+    virtual void /*ComputationNode::*/ ForwardProp(const FrameRange& fr) override;
+    virtual void /*ComputationNode::*/ BackpropTo(const size_t inputIndex, const FrameRange& fr) override;
+    virtual bool /*ComputationNodeBase::*/ OutputUsedInComputingInputNodesGradients() const override;
+    virtual bool /*ComputationNodeBase::*/ InputUsedInComputingInputNodesGradients(size_t childIndex) const override;
+    virtual void /*ComputationNodeBase::*/ Validate(bool isFinalValidationPass) override;
+
+private:
+    int m_axis;
+    std::wstring m_operation; // the operation as a string, e.g. "Sum", see ValidateOp()
+    ElementWiseOperator m_op; // the operation mapped to our internal opCode
+};
 
 // -----------------------------------------------------------------------
 // ReconcileDynamicAxis (dataInput, layoutInput)
@@ -202,7 +255,7 @@ public:
                             Input(1)->NodeName().c_str(), Input(1)->OperationName().c_str());
 
         // copy the data from 'dataInput'
-        ValueFor(fr).SetValue(Input(0)->ValueFor(fr.WithLayout(Input(0)->GetMBLayout()))); // just propagate through
+        ValueFor(fr).AssignValuesOf(Input(0)->ValueFor(fr.WithLayout(Input(0)->GetMBLayout()))); // just propagate through
         // TODO: Once we do in-place, the above must include a copy-to-self check (either here or inside the matrix lib).
     }
 
@@ -603,6 +656,7 @@ public:
     WhereNode(DEVICEID_TYPE deviceId, const wstring& name) :
         Base(deviceId, name)
     {
+        MarkValueNonSharable();
     }
 
     virtual void /*ComputationNodeNonLooping::*/ ForwardPropNonLooping() override;
@@ -643,6 +697,7 @@ public:
     PackedIndexNode(DEVICEID_TYPE deviceId, const wstring& name) :
         Base(deviceId, name)
     {
+        MarkValueNonSharable();
     }
 
     virtual void /*ComputationNodeNonLooping::*/ ForwardPropNonLooping() override;
@@ -1027,7 +1082,7 @@ public:
         // (We still need to copy the values since there is currently no way to point to an input function value while reshaping at the same time.)
         if (!m_pMBLayout || factor() == 1)
         {
-            Value().Reshaped(newCols * m_numTargetRows, 1).SetValue(Input(0)->Value().Reshaped(cols * rows, 1)); // copy the values as one long vector
+            Value().Reshaped(newCols * m_numTargetRows, 1).AssignValuesOf(Input(0)->Value().Reshaped(cols * rows, 1)); // copy the values as one long vector
         }
         // layout case: reshape semantics happens across parallel seqeunces, i.e. requiring data shuffling
         else
@@ -1320,10 +1375,10 @@ reshaping
 reductions
 ----------
 
+ - these are/will be implemented as a node for samples, and as recurrences for sequences
  - ReduceSum
     - sum over all elements of a dimension, or over time
-    - we already got: SumColumnElements
- - ReduceMax
+ - ReduceMax, ReduceMin
     - max
     - can use MaxPooling?
  - ReduceMean
@@ -1332,12 +1387,12 @@ reductions
  - ArgMax, ArgMin
     - we already have that somewhere, for evaluation
  - All, Any
-    - logical test --must be done over sequences
+    - logical test
  - TF also has:
-    - reduce_prod, reduce_min
+    - reduce_prod
     - segment_sum etc.; we use sequences
     - listdiff
-    - where: indices of 'true' values  -> 2D tensor of coordinates
+    - where: indices of 'true' values  -> 2D tensor of coordinates (unlike our Where)
     - unique (1D only)
     - edit_distance
     - invert_permutation: invert a permutation index vector
