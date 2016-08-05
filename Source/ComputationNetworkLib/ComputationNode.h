@@ -37,7 +37,9 @@
 #define CNTK_MODEL_VERSION_6 6 // Batch norm blending
 #define CNTK_MODEL_VERSION_7 7 // ElemType tag in model file
 #define CNTK_MODEL_VERSION_8 8 // DynamicAxis for inputs
-#define CURRENT_CNTK_MODEL_VERSION CNTK_MODEL_VERSION_8
+#define CNTK_MODEL_VERSION_9 9 // Transpose flag in ConvolutionNode to support deconvolution. 
+#define CNTK_MODEL_VERSION_10 10 // Learning rate multiplier for input nodes. 
+#define CURRENT_CNTK_MODEL_VERSION CNTK_MODEL_VERSION_10
 
 extern bool g_shareNodeValueMatrices;
 
@@ -183,7 +185,7 @@ protected:                // TODO: should be fully encapsulated here
     bool m_needsGradient; // true if this node or any children need a gradient to be computed (for own consumption or propagation to somewhere in the child tree)
 
     bool m_valueSharable; // a flag is needed for memory share.
-                          // If it is false (e.g., learnableParameters/InputValue and those nodes are solely induced by learnableParameters),
+                          // If it is false (e.g., LearnableParameters/InputValue and those nodes are solely induced by LearnableParameters),
                           // it will never be released to memory pool
 private:
     bool m_isPartOfLoop; // true if this loop is part of a recurrent loop
@@ -288,6 +290,9 @@ public:
         m_gradientInitialized(false), m_nodeName(name == L"" ? CreateUniqNodeName() : name)
     {
         // TODO: should m_learningRateMultiplier be set to 0? Or should every node have a way to add its own say on the learning rate for all its inputs?
+        // we store a unique numeric number for every node that is constructed, as a debugging aid
+        static size_t uniqueNumericId = 0;
+        m_uniqueNumericId = uniqueNumericId++;
     }
     virtual ~ComputationNodeBase()
     {
@@ -832,6 +837,8 @@ public:
     // Helper that returns [a x b x c], including dynamic axes.
     const std::string ShapeDescription() const;
 
+    // debugging helper
+    size_t m_uniqueNumericId; // (a unique handle for debugging)
 protected:
 
     // -----------------------------------------------------------------------
@@ -1422,6 +1429,20 @@ public:
         m_gradientInitialized = true;
     }
 
+    // Assign the given matrix's value to this node's gradient. The matrix sizes must match.
+    void AssignGradient(const Matrix<ElemType>& val)
+    {
+        UpdateDataSize(Gradient());
+
+        // The specified value matrix's dimensions must match the gradient matrix dimensions
+        if ((val.GetNumRows() != Gradient().GetNumRows()) || (val.GetNumCols() != Gradient().GetNumCols()))
+            LogicError("%ls %ls operation: The value matrix specified for ResetGradient() does not match the dimensions of the gradient matrix.", NodeName().c_str(), OperationName().c_str());
+
+        Gradient().AssignValuesOf(val);
+
+        m_gradientInitialized = true;
+    }
+
     // -----------------------------------------------------------------------
     // memory sharing
     // -----------------------------------------------------------------------
@@ -1875,6 +1896,13 @@ public:
 // =======================================================================
 
 struct IRecurrentNode { virtual int GetRecurrenceSteppingDirection() const = 0; };
+
+// =======================================================================
+// IFreezable -- nodes that have parameters that can be frozen
+// e.g. if a trained model is to be used as a fixed feature extractor for another
+// =======================================================================
+
+struct IFreezable { virtual void FreezeParameters() { } };
 
 // =======================================================================
 // PreComputedNodeBase -- interface implemented by ComputationNodes that precompute
