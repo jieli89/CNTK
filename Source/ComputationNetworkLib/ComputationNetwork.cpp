@@ -716,6 +716,8 @@ void ComputationNetwork::DescribeNetworkUsingDot(list<ComputationArc>& arcs,
 
     vector<ComputationNodeBasePtr> preComputedNodes;
     vector<ComputationNodeBasePtr> pastValueNodes;
+	// get LCPastValue node
+    vector<ComputationNodeBasePtr> lcpastValueNodes;
     vector<ComputationNodeBasePtr> futureValueNodes;
     vector<ComputationNodeBasePtr> learnableParameters;
     vector<ComputationNodeBasePtr> allnodes = GetAllNodes();
@@ -727,6 +729,8 @@ void ComputationNetwork::DescribeNetworkUsingDot(list<ComputationArc>& arcs,
         const auto operationName = n->OperationName();
         if (operationName == OperationNameOf(PastValueNode) || operationName == L"Delay"/*legacy*/) 
             pastValueNodes.push_back(n);
+		else if (operationName == OperationNameOf(LCPastValueNode))
+            lcpastValueNodes.push_back(n);
         else if (operationName == OperationNameOf(FutureValueNode))
             futureValueNodes.push_back(n);
         else if (operationName == OperationNameOf(LearnableParameter))
@@ -753,6 +757,8 @@ void ComputationNetwork::DescribeNetworkUsingDot(list<ComputationArc>& arcs,
     fstream << FormSpecialNodes(dotcfg.m_PrecomputingNodeStyle, preComputedNodes);
     // PastValue nodes
     fstream << FormSpecialNodes(dotcfg.m_pastValueNodeStyle, pastValueNodes);
+	// LCPastValue nodes
+    fstream << FormSpecialNodes(dotcfg.m_pastValueNodeStyle, lcpastValueNodes);
     // FutureValue nodes
     fstream << FormSpecialNodes(dotcfg.m_futureValueNodeStyle, futureValueNodes);
     // normal nodes
@@ -815,6 +821,18 @@ void ComputationNetwork::DescribeNetworkUsingDot(list<ComputationArc>& arcs,
             wstring dummyName = des->GetName() + L".dummy";
             wstring out = msra::strfun::wstrprintf(L"node [ shape = box3d  , color = lightgray, style = \"filled\" , label = \"%ls\" ] ; \"%ls\"\n",
                                                    (pastValueNode->GetName() + L"\\n(PastValue)").c_str(),
+                                                   dummyName.c_str());
+            line = out;
+            line += msra::strfun::wstrprintf(L"\"%ls\" -> \"%ls\" ; \n", dummyName.c_str(), srcname.c_str());
+        }
+		 else if (des->OperationName() == OperationNameOf(LCPastValueNode))
+        {
+            // special treament for arc with PastValue node as the children
+            // create a dummy node
+            ComputationNodeBasePtr lcpastValueNode = des;
+            wstring dummyName = des->GetName() + L".dummy";
+            wstring out = msra::strfun::wstrprintf(L"node [ shape = box3d  , color = lightgray, style = \"filled\" , label = \"%ls\" ] ; \"%ls\"\n",
+                                                   (lcpastValueNode->GetName() + L"\\n(LCPastValue)").c_str(),
                                                    dummyName.c_str());
             line = out;
             line += msra::strfun::wstrprintf(L"\"%ls\" -> \"%ls\" ; \n", dummyName.c_str(), srcname.c_str());
